@@ -1,0 +1,332 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>ATM Application</title>
+    <style>
+      *:root {
+        --slate-900: #0f172a;
+        --red-500: #ef4444;
+        --red-600: #dc2626;
+        --green-500: #22c55e;
+        --emerald-500: #10b981;
+        --lime-600: #65a30d;
+        --green-600: #16a34a;
+        --emerald-600: #059669;
+        --cyan-700: #0e7490;
+        --cyan-900: #164e63;
+        --zinc-200: #e4e4e7;
+        --sky-400: #38bdf8;
+      }
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+      body {
+        font-family: Arial, Helvetica, sans-serif;
+        margin: 0;
+        padding: 0;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        height: 100vh;
+        background: linear-gradient(
+          45deg,
+          var(--green-500),
+          var(--emerald-600)
+        );
+      }
+
+      .container {
+        background: rgba(16, 185, 129, 0.4);
+        padding: 20px;
+        border-radius: 8px;
+        box-shadow: 0 0 50px rgba(0, 0, 0, 0.3);
+        width: 25.75rem;
+        text-align: center;
+      }
+      .hidden {
+        display: none;
+      }
+      h2 {
+        color: var(--slate-900);
+      }
+      input {
+        width: 90%;
+        padding: 8px;
+        margin: 10px 0;
+        border: var(--zinc-200) 1px solid;
+        border-radius: 4px;
+      }
+      button {
+        padding: 10px 20px;
+        margin: 10px 5px;
+        color: var(--zinc-200);
+        border: none;
+        border-radius: 5px;
+        cursor: pointer;
+        width: 30%;
+      }
+      .confirm {
+        background: var(--emerald-600);
+      }
+      .confirm:hover {
+        background: var(--green-500);
+        transition: ease-in-out 0.2s;
+        border-radius: 4px;
+      }
+      .cancel {
+        background: var(--red-600);
+      }
+      .cancel:hover {
+        background: var(--red-500);
+        transition: ease-in-out 0.2s;
+      }
+      .clear {
+        background: var(--cyan-900);
+      }
+      .clear:hover {
+        background: var(--cyan-700);
+        transition: ease-in-out 0.2s;
+      }
+      .error {
+        color: var(--red-500);
+        font-size: 0.8rem;
+        /* margin: 5px 0; */
+      }
+      .success {
+        color: var(--green-600);
+        font-size: 0.8rem;
+        margin: 5px 0;
+      }
+      .menu-items > .cancel {
+        width: 40%;
+      }
+      .menu-items > .cancel:hover {
+        background-color: var(--red-500);
+        transition: ease-in-out 0.2s;
+      }
+      .m-btn {
+        width: 40%;
+        background-color: var(--sky-400);
+      }
+      .m-btn:hover {
+        background-color: var(--cyan-700);
+        transition: ease-in-out 0.2s;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <!-- !Login Page -->
+      <div id="login">
+        <h2>Welcome to Punjab National Bank</h2>
+        <div id="login-message" class="error hidden"></div>
+        <input type="number" id="account-number" placeholder="Account Number" />
+        <input type="password" name="pin" id="pin" placeholder="PIN" />
+        <button onclick="login()" class="confirm">Confirm</button>
+        <button onclick="clearLoginForm()" class="clear">Clear</button>
+      </div>
+      <!-- !Menu Page -->
+      <div id="menu" class="hidden">
+        <h2>How can i help you today.</h2>
+        <div class="menu-items">
+          <button onclick="showWithdraw()" class="m-btn">Withdraw</button>
+          <button onclick="showDeposit()" class="m-btn">Deposit</button>
+          <button onclick="showBalance()" class="m-btn">Check Balance</button>
+          <button onclick="logout()" class="cancel">Cancel</button>
+        </div>
+      </div>
+      <!-- !Withdraw Page -->
+      <div id="withdraw" class="hidden">
+        <h2>Withdraw</h2>
+        <input type="number" id="withdraw-amount" placeholder="Enter amount" />
+        <button onclick="withdraw()" class="confirm">Confirm</button>
+        <button onclick="clearWithdrawForm()" class="clear">Clear</button>
+      </div>
+      <!-- !Withdraw Result Page -->
+      <div id="withdraw-result" class="hidden">
+        <div id="withdraw-message"></div>
+      </div>
+      <!-- !Deposit Page -->
+      <div id="deposit" class="hidden">
+        <h2>Deposit</h2>
+        <input type="number" id="deposit-amount" placeholder="Enter amount" />
+        <button onclick="deposit()" class="confirm">Confirm</button>
+        <button onclick="clearDepositForm()" class="clear">Clear</button>
+      </div>
+      <!-- !Deposit Result Page -->
+      <div id="deposit-result" class="hidden">
+        <div id="deposit-message"></div>
+      </div>
+      <!-- !Balance Page -->
+      <div id="balance" class="hidden">
+        <h2>Account Balance</h2>
+        <div id="balance-message"></div>
+      </div>
+    </div>
+  </body>
+
+  <script>
+    let currentUser = null;
+    let loginAttempt = 3;
+
+    async function login() {
+      const accNo = document.getElementById("account-number").value;
+      const pin = document.getElementById("pin").value;
+
+      try {
+        const response = await fetch("/login/", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ account_number: accNo, pin }),
+        });
+
+        const data = await response.json();
+        if (!response.ok)
+          throw new Error(data.error || "An unexpected error occurred.");
+
+        currentUser = data.user;
+        document.getElementById("login-message").classList.add("hidden");
+        showSection("menu");
+      } catch (error) {
+        loginAttempt--;
+        const message = document.getElementById("login-message");
+
+        message.classList.remove("hidden");
+        if (loginAttempt > 0) {
+          message.textContent = `${error.message}. You have ${loginAttempt} attempts left.`;
+        } else {
+          message.textContent =
+            "You have exceeded the maximum number of attempts. Please try after 2 Mins.";
+          disableLogin();
+          setTimeout(() => {
+            enableLogin();
+            loginAttempt = 3;
+            message.classList.add("hidden");
+          }, 120000);
+        }
+      }
+    }
+
+    function disableLogin() {
+      document.getElementById("account-number").disabled = true;
+      document.getElementById("pin").disabled = true;
+    }
+
+    function enableLogin() {
+      document.getElementById("account-number").disabled = false;
+      document.getElementById("pin").disabled = false;
+      clearLoginForm();
+    }
+
+    function showWithdraw() {
+      showSection("withdraw");
+    }
+    async function withdraw() {
+      const amount = Number(document.getElementById("withdraw-amount").value);
+      const account_number = currentUser.acc_no;
+
+      try {
+        const response = await fetch("/withdraw/", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            account_number: account_number,
+            amount,
+          }),
+        });
+        const data = await response.json();
+        if (!response.ok) throw new Error(data.error);
+
+        document.getElementById(
+          "withdraw-message"
+        ).textContent = `${data.message}. Available Balance: ${data.available_balance}`;
+        showSection("withdraw-result");
+      } catch (error) {
+        document.getElementById("withdraw-message").textContent = error.message;
+        // showSection("withdraw-result");
+      }
+      setTimeout(logout, 5000);
+    }
+
+    function showDeposit() {
+      showSection("deposit");
+    }
+
+    async function deposit() {
+      const amount = Number(document.getElementById("deposit-amount").value);
+      const account_number = currentUser.acc_no;
+
+      try {
+        const response = await fetch("/deposit/", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ account_number, amount }),
+        });
+
+        const data = await response.json();
+        if (!response.ok) throw new Error(data.error);
+
+        document.getElementById(
+          "deposit-message"
+        ).textContent = `${data.message}. Available Balance: ${data.available_balance}`;
+        showSection("deposit-result");
+      } catch (error) {
+        document.getElementById("deposit-message").textContent = error.message;
+      }
+      setTimeout(logout, 5000);
+    }
+
+    async function showBalance() {
+      try {
+        const response = await fetch("/balance/", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ account_number: currentUser.acc_no }),
+        });
+
+        const data = await response.json();
+        if (!response.ok) throw new Error(data.error);
+
+        document.getElementById(
+          "balance-message"
+        ).textContent = `Your Balance: ${data.balance}`;
+        showSection("balance");
+      } catch (error) {
+        document.getElementById("balance-message").textContent = error.message;
+      }
+      setTimeout(logout, 5000);
+    }
+
+    function logout() {
+      currentUser = null;
+      showSection("login");
+      clearLoginForm();
+    }
+
+    function showSection(id) {
+      document
+        .querySelectorAll(".container > div")
+        .forEach((section) => section.classList.add("hidden"));
+      document.getElementById(id).classList.remove("hidden");
+    }
+
+    function clearLoginForm() {
+      document.getElementById("account-number").value = "";
+      document.getElementById("pin").value = "";
+    }
+    function clearWithdrawForm() {
+      document.getElementById("withdraw-amount").value = "";
+    }
+    function clearDepositForm() {
+      document.getElementById("deposit-amount").value = "";
+    }
+  </script>
+</html>
